@@ -21,6 +21,7 @@ package meta
 import (
 	"encoding/hex"
 	"fmt"
+	"math"
 	"os"
 	"os/user"
 	"strconv"
@@ -109,20 +110,20 @@ func (e *posixEngine) ApplyMeta(absPath string, meta *model.PlatformMeta, applyP
 
 		// Priority 1: resolve by name if present
 		if meta.Username != "" {
-			if u, ok := lookupNameToUID(meta.Username); ok {
+			if u, ok := lookupNameToUID(meta.Username); ok && u <= math.MaxInt32 {
 				targetUID = int(u)
 			}
 		}
-		if targetUID == -1 && meta.UID != nil {
+		if targetUID == -1 && meta.UID != nil && *meta.UID <= math.MaxInt32 {
 			targetUID = int(*meta.UID)
 		}
 
 		if meta.Group != "" {
-			if g, ok := lookupNameToGID(meta.Group); ok {
+			if g, ok := lookupNameToGID(meta.Group); ok && g <= math.MaxInt32 {
 				targetGID = int(g)
 			}
 		}
-		if targetGID == -1 && meta.GID != nil {
+		if targetGID == -1 && meta.GID != nil && *meta.GID <= math.MaxInt32 {
 			targetGID = int(*meta.GID)
 		}
 
@@ -191,7 +192,7 @@ func lookupNameToUID(name string) (uint32, bool) {
 	}
 	u, err := user.Lookup(name)
 	if err == nil && u != nil {
-		if parsed, err := strconv.ParseUint(u.Uid, 10, 32); err == nil {
+		if parsed, err := strconv.ParseUint(u.Uid, 10, 32); err == nil && parsed <= math.MaxInt32 {
 			uid := uint32(parsed)
 			nameToUIDCache.Store(name, uid)
 			uidToNameCache.Store(uid, name)
@@ -207,7 +208,7 @@ func lookupNameToGID(name string) (uint32, bool) {
 	}
 	g, err := user.LookupGroup(name)
 	if err == nil && g != nil {
-		if parsed, err := strconv.ParseUint(g.Gid, 10, 32); err == nil {
+		if parsed, err := strconv.ParseUint(g.Gid, 10, 32); err == nil && parsed <= math.MaxInt32 {
 			gid := uint32(parsed)
 			nameToGIDCache.Store(name, gid)
 			gidToNameCache.Store(gid, name)
